@@ -1,0 +1,9 @@
+# Design source & process files — kept locally, not deployed to the public site
+uploads/
+screenshots/
+*.dc.html
+image-slot.js
+support.js
+
+# OS junk
+.DS_Store
