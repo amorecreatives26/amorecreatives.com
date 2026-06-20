@@ -7,3 +7,8 @@ support.js
 
 # OS junk
 .DS_Store
+
+# Track project Claude config in this repo (overrides the global ignore of
+# settings.local.json). settings.local.json is normally a personal/local file;
+# tracked here at the maintainer's request.
+!.claude/settings.local.json
