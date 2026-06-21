@@ -81,13 +81,16 @@ try:
     dl = ev("Array.isArray(window.dataLayer)?window.dataLayer.length:0")
     loaded = any("gtag/js" in u for u in reqs)
     hit = any("/collect" in u for u in reqs)
-    print(f"gtag function : {gtag}")
-    print(f"dataLayer     : {dl} events")
-    print(f"gtag.js loaded: {'YES' if loaded else 'NO'}")
-    print(f"GA4 hit sent  : {'YES' if hit else 'NO'}")
+    print(f"gtag function   : {gtag}")
+    print(f"dataLayer       : {dl} events")
+    print(f"gtag.js request : {'YES' if loaded else 'no (served from cache — not decisive)'}")
+    print(f"GA4 /collect hit: {'YES' if hit else 'NO'}")
     for u in reqs:
         print("   ", u[:140])
-    ok = gtag == "function" and loaded and hit
+    # The /collect beacon is the authoritative signal — it cannot fire unless gtag.js
+    # loaded and initialised. The gtag/js library request itself is cache-dependent on
+    # reload, so it is NOT part of the pass condition.
+    ok = gtag == "function" and hit
     print("\nRESULT:", "PASS — Google Analytics is firing ✓" if ok else "FAIL — GA not firing")
     sys.exit(0 if ok else 1)
 finally:

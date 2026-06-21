@@ -2,7 +2,18 @@
   "permissions": {
     "allow": [
       "Bash(awk 'NR<=120' index.html)",
-      "Bash(awk 'NR>=120 && NR<=180' index.html)"
+      "Bash(awk 'NR>=120 && NR<=180' index.html)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" https://amorecreatives.com/robots.txt)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" https://amorecreatives.com/sitemap.xml)",
+      "Bash(curl -s https://amorecreatives.com/)",
+      "Bash(python3 -c \"import sys,re; h=sys.stdin.read\\(\\); b=h[h.find\\('<body'\\):]; t=re.sub\\(r'<script[\\\\s\\\\S]*?</script>',' ',b\\); t=re.sub\\(r'<[^>]+>',' ',t\\); import re; print\\(re.sub\\(r'\\\\s+',' ',t\\).strip\\(\\)[:400]\\)\")",
+      "Bash('/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' --headless=new --disable-gpu --hide-scrollbars --force-device-scale-factor=1 --window-size=1200,900 --virtual-time-budget=9000 --screenshot=/tmp/desktop_check.png file://__TRACKED_VAR__/index.html)",
+      "Bash(python3 -c \"from PIL import Image; print\\('rendered', Image.open\\('/tmp/desktop_check.png'\\).size\\)\")",
+      "Bash(python3 scripts/check-ga.py)",
+      "Bash(python3 scripts/verify-mobile.py)",
+      "Bash(cp index.html /tmp/cur.html)",
+      "Bash(python3 scripts/apply-seo.py)",
+      "Bash(python3 -c ' *)"
     ]
   }
 }

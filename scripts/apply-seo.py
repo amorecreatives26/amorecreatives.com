@@ -29,6 +29,7 @@ DESCRIPTION = ("Amore Creatives runs end-to-end influencer campaigns for DTC and
 OG_TITLE    = "Fully Managed Influencer Marketing for DTC Brands"
 OG_DESC     = ("We run your influencer campaigns so your team doesn't have to — sourcing, "
                "outreach, contracts, coordination and reporting, end to end.")
+CONTACT_EMAIL = "contact@amorecreatives.com"
 
 CHARSET = '<meta charset="utf-8">'
 VIEWPORT = '<meta name="viewport" content="width=device-width, initial-scale=1">'
@@ -56,6 +57,9 @@ HEAD_BLOCK = f"""
   <meta name="twitter:title" content="{OG_TITLE}">
   <meta name="twitter:description" content="{OG_DESC}">
   <meta name="twitter:image" content="{OG_IMAGE}">
+  <script type="application/ld+json">
+  {{"@context":"https://schema.org","@type":"Organization","name":"Amore Creatives","url":"{CANONICAL}","logo":"https://amorecreatives.com/assets/favicon-180.png","image":"{OG_IMAGE}","description":"Full-service influencer marketing management for DTC brands and growing companies. Amore Creatives handles sourcing, outreach, contracts, coordination and reporting end to end.","email":"{CONTACT_EMAIL}","contactPoint":{{"@type":"ContactPoint","email":"{CONTACT_EMAIL}","contactType":"Sales"}}}}
+  </script>
   <script type="application/ld+json">
   {{"@context":"https://schema.org","@type":"ProfessionalService","name":"Amore Creatives","url":"{CANONICAL}","image":"{OG_IMAGE}","description":"Fully managed influencer marketing for DTC and growing brands. Amore Creatives handles sourcing, outreach, contracts, coordination and reporting end to end — the brand approves the strategy, we execute the campaign.","slogan":"We run your influencer campaigns so your team doesn't have to.","areaServed":"Worldwide","serviceType":"Influencer marketing campaign management","knowsAbout":["Influencer marketing","Creator sourcing and outreach","Campaign management","DTC brand marketing","Influencer contracts and coordination","Campaign reporting"],"offers":{{"@type":"Offer","description":"Done-for-you influencer campaign management: brief approval, creator briefing, live campaign tracking and a single final report."}}}}
   </script>
@@ -101,6 +105,49 @@ NOSCRIPT_BLOCK = """  <noscript>
       <p>This site requires JavaScript for the full interactive experience.</p>
     </main>
   </noscript>"""
+
+# Standalone Organization JSON-LD — gap-filled when an export already has SEO but no
+# Organization block (detected by the absence of '"@type":"Organization"').
+ORG_BLOCK = (
+    '  <script type="application/ld+json">\n'
+    '  {"@context":"https://schema.org","@type":"Organization","name":"Amore Creatives",'
+    f'"url":"{CANONICAL}","logo":"https://amorecreatives.com/assets/favicon-180.png",'
+    f'"image":"{OG_IMAGE}","description":"Full-service influencer marketing management for '
+    'DTC brands and growing companies. Amore Creatives handles sourcing, outreach, contracts, '
+    f'coordination and reporting end to end.","email":"{CONTACT_EMAIL}",'
+    f'"contactPoint":{{"@type":"ContactPoint","email":"{CONTACT_EMAIL}","contactType":"Sales"}}}}\n'
+    '  </script>\n'
+)
+
+# Pre-JS crawlable body content. Sits behind the full-screen #__bundler_thumbnail overlay
+# (z-index:9999) so real users never see it, and the bundle's JS replaces the whole
+# document on load. Guarantees crawlers reading the raw body get real content, not just
+# the "Unpacking..." preloader. Marked by id="__ac_seo".
+BODY_SEO_BLOCK = (
+    '\n  <main id="__ac_seo" style="position:absolute;left:0;top:0;z-index:1;max-width:720px;'
+    'padding:48px 24px;color:#0b1a2e;font-family:Georgia,serif;line-height:1.6">\n'
+    '    <h1>Amore Creatives — Fully Managed Influencer Marketing</h1>\n'
+    "    <p>We run your influencer campaigns so your team doesn't have to. Amore Creatives "
+    'offers full-service campaign management for DTC brands and growing companies. You approve '
+    'the strategy — we handle sourcing, outreach, contracts, coordination and reporting.</p>\n'
+    '    <h2>What we handle</h2>\n'
+    '    <p>Everything from the first shortlist to the closing report. Your only job is approval. '
+    'We operate as your outsourced influencer team with one point of contact and one final report '
+    'per campaign.</p>\n'
+    '    <h2>How a campaign flows</h2>\n'
+    '    <ol>\n'
+    '      <li><strong>Brief approved</strong> — you sign off the strategy and shortlist.</li>\n'
+    '      <li><strong>Creators briefed</strong> — we coordinate content, product and timing.</li>\n'
+    '      <li><strong>Campaign live</strong> — posts go out and we track every one.</li>\n'
+    '      <li><strong>Report delivered</strong> — one clear summary of what the campaign did.</li>\n'
+    '    </ol>\n'
+    '    <h2>Our network</h2>\n'
+    '    <p>A curated network of trusted influencers across key niches. We hold direct relationships '
+    'as community moderators — warm reach, not cold outreach. Named profiles and rate cards are '
+    'shared with qualified brands under NDA.</p>\n'
+    f'    <p>Contact: {CONTACT_EMAIL}</p>\n'
+    '  </main>\n'
+)
 
 # Template-head injection (Google's JS render). Stored JSON-escaped: \" and \/.
 TPL_ANCHOR = r'<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">'
@@ -163,6 +210,34 @@ def main():
             notes.append("injected rich noscript before </head>")
     else:
         notes.append("rich noscript already present")
+
+    # 4b) Organization schema (gap-fill if SEO present but no Organization block) ---
+    if '"@type":"Organization"' not in s:
+        anchor = '<meta name="twitter:image" content="' + OG_IMAGE + '">'
+        if anchor in s:
+            s, ok = insert_after(s, anchor, ORG_BLOCK)
+            notes.append("added Organization schema" if ok else "WARN org anchor failed")
+        else:
+            notes.append("WARN no twitter:image anchor — Organization schema not added")
+    else:
+        notes.append("Organization schema already present")
+
+    # 4c) pre-JS crawlable body content (mirrors noscript, behind the preloader) -----
+    if 'id="__ac_seo"' not in s:
+        anchor = '<div id="__bundler_loading">Unpacking...</div>'
+        if anchor in s:
+            s, ok = insert_after(s, anchor, BODY_SEO_BLOCK)
+            notes.append("added pre-JS body content" if ok else "WARN body anchor failed")
+        else:
+            # fall back to just after <body>
+            m = re.search(r"<body[^>]*>", s)
+            if m:
+                i = m.end(); s = s[:i] + BODY_SEO_BLOCK + s[i:]
+                notes.append("added pre-JS body content (after <body>)")
+            else:
+                notes.append("WARN no <body> anchor — body content not added")
+    else:
+        notes.append("pre-JS body content already present")
 
     # 5) template head SEO (Google JS render) ----------------------------------
     ti = s.find('type="__bundler/template">')
